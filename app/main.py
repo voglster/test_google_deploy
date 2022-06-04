@@ -1,13 +1,15 @@
 from typing import Union
 
 from fastapi import FastAPI
-from postgres_test import connect
+from app.postgres_test import connect
 
 app = FastAPI()
+
 
 @app.get("/db")
 def db_ep():
     return connect()
+
 
 @app.get("/hello")
 def read_root():
