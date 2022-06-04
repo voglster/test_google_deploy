@@ -2,30 +2,40 @@ import psycopg2
 from psycopg2 import Error
 from os import getenv
 
-def connect():
-    try:
-        # Connect to an existing database
-        host = getenv('PG_HOST')
-        connection = psycopg2.connect(user="postgres",
-                                      password="test",
-                                      host=host,
-                                      port="45432",
-                                      database="postgres")
+from contextlib import contextmanager
 
-        # Create a cursor to perform database operations
+
+@contextmanager
+def get_cursor():
+    host = getenv("PG_HOST")
+    connection = psycopg2.connect(
+        user="postgres", password="test", host=host, port="45432", database="postgres"
+    )
+    cursor = None
+    try:
         cursor = connection.cursor()
-        # Print PostgreSQL details
-        print("PostgreSQL server information")
-        print(connection.get_dsn_parameters(), "\n")
-        # Executing a SQL query
-        cursor.execute("SELECT version();")
-        # Fetch result
-        record = cursor.fetchone()
-        return f"You are connected to - {record}"
+        yield connection, cursor
 
     except (Exception, Error) as error:
-        return f"Error while connecting to PostgreSQL {error}"
+        print(f"Error while connecting to PostgreSQL {error}")
     finally:
-        if (connection):
+        if cursor:
             cursor.close()
+        if connection:
             connection.close()
+
+
+def connect():
+    with get_cursor() as (conn, cur):
+        print(conn.get_dsn_parameters(), "\n")
+        print("PostgreSQL server information")
+        cur.execute("SELECT version();")
+        record = cur.fetchone()
+        return f"You are connected to - {record}"
+
+
+def get_data():
+    with get_cursor() as (conn, cur):
+        sql = "SELECT * FROM hdd_by_state LIMIT 100"
+        cur.execute(sql)
+        return cur.fetchall()
